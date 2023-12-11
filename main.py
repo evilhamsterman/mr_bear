@@ -110,4 +110,4 @@ if __name__ == "__main__":
     sdcard = SDCard()
     audio = AudioOut()
     button = Button()
-    led = LED()
+    led = LED(GREEN)
