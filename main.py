@@ -1,6 +1,7 @@
 """Play music on Mr Bear"""
 import os
 import time
+from collections import namedtuple
 
 import audiobusio
 import audiomp3
@@ -11,10 +12,11 @@ import sdcardio
 import storage
 from microcontroller import Pin
 
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-BLACK = (0, 0, 0)
+Colors = namedtuple("Colors", ("red", "green", "blue"))
+RED = Colors(*(255, 0, 0))
+GREEN = Colors(*(0, 255, 0))
+BLUE = Colors(*(0, 0, 255))
+BLACK = Colors(*(0, 0, 0))
 
 
 class SDCard:
@@ -74,9 +76,10 @@ class Button:
 class LED:
     """LED object"""
 
-    def __init__(self) -> None:
+    def __init__(self, color: tuple[int]) -> None:
         self.led = neopixel.NeoPixel(board.NEOPIXEL, 1)
         self._state = False
+        self.color = color
 
     @property
     def state(self) -> bool:
