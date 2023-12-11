@@ -23,9 +23,9 @@ class SDCard:
     def __init__(self, mount_point: str = "/sd") -> None:
         self.mount_point = mount_point
         print("Creating card")
-        sdcard = sdcardio.SDCard(board.SPI(), board.A0)
+        card = sdcardio.SDCard(board.SPI(), board.A0)
         print("Loading Filesystem")
-        vfs = storage.VfsFat(sdcard)
+        vfs = storage.VfsFat(card)
         print("Mouning SD Card")
         storage.mount(vfs, self.mount_point)
         print("SD Card Mounted")
@@ -107,3 +107,4 @@ if __name__ == "__main__":
     sdcard = SDCard()
     audio = AudioOut()
     button = Button()
+    led = LED()
