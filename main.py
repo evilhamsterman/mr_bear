@@ -12,11 +12,9 @@ import sdcardio
 import storage
 from microcontroller import Pin
 
-Colors = namedtuple("Colors", ("red", "green", "blue"))
-RED = Colors(*(255, 0, 0))
-GREEN = Colors(*(0, 255, 0))
-BLUE = Colors(*(0, 0, 255))
-BLACK = Colors(*(0, 0, 0))
+ItemType = namedtuple("ItemType", ("path", "type"))
+FOLDER = 0x4000
+FILE = 0x8000
 
 
 class SDCard:
@@ -32,11 +30,19 @@ class SDCard:
         storage.mount(vfs, self.mount_point)
         print("SD Card Mounted")
 
-    def ls(self, ext: str = "wav") -> list[str]:
-        """List files on the SD Card"""
-        return [
-            file for file in os.listdir(self.mount_point) if file.endswith(ext)
-        ]  # noqa: E501
+    def ls(self, folder: str = "/") -> list[tuple[str, str]]:
+        """
+        List files and folder on the SD Card
+
+        Returns a list with all items in the folder with a tuple of path and the type
+        """
+        path = self.mount_point + folder
+        items = []
+        for i in os.listdir(self.mount_point + folder):
+            f = path + i
+            t = os.stat(f)[0]
+            items.append(ItemType(f, "file" if t == FILE else "folder"))
+        return items
 
 
 class AudioOut:
@@ -76,10 +82,10 @@ class Button:
 class LED:
     """LED object"""
 
-    def __init__(self, color: tuple[int]) -> None:
+    def __init__(self) -> None:
         self.led = neopixel.NeoPixel(board.NEOPIXEL, 1)
         self._state = False
-        self.color = color
+        self.color = (255, 0, 0)  # GREEN
 
     @property
     def state(self) -> bool:
@@ -98,16 +104,16 @@ class LED:
     def on(self):
         """Turn on the LED"""
         self._state = True
-        self.led.fill(GREEN)
+        self.led.fill((255, 0, 0))
 
     def off(self):
         """Turn off the LED"""
         self._state = False
-        self.led.fill(BLACK)
+        self.led.fill((0, 0, 0))
 
 
 if __name__ == "__main__":
     sdcard = SDCard()
     audio = AudioOut()
     button = Button()
-    led = LED(GREEN)
+    led = LED()
