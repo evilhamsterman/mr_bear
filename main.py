@@ -7,6 +7,7 @@ import audiobusio
 import audiomp3
 import board
 import digitalio
+import pwmio
 import sdcardio
 import storage
 from microcontroller import Pin
@@ -20,14 +21,12 @@ class LED:
     """LED object"""
 
     def __init__(self, pin: Pin = board.SDA) -> None:
-        self.led = digitalio.DigitalInOut(pin)
-        self.led.direction = digitalio.Direction.OUTPUT
-        self.led.value = False
+        self.led = pwmio.PWMOut(pin, frequency=1000, duty_cycle=0)
 
     @property
     def state(self) -> bool:
         """Returns the current state of the LED"""
-        return self.led.value
+        return self.led.duty_cycle
 
     @state.setter
     def state(self, new_state: bool) -> bool:
@@ -150,25 +149,25 @@ def test_button(button: Button, led: LED) -> None:
             print("Button Pressed")
 
 
-if __name__ == "__main__":
-    sdcard = SDCard()
-    audio = AudioOut()
-    left_button = Button(board.TX)
-    right_button = Button(board.RX)
-    led = LED()
+# if __name__ == "__main__":
+#     sdcard = SDCard()
+#     audio = AudioOut()
+#     left_button = Button(board.TX)
+#     right_button = Button(board.RX)
+#     led = LED()
 
-    print("Loaded and ready")
-    led.blink(3)
+#     print("Loaded and ready")
+#     led.blink(3)
 
-    # Stop annoying regular blink LED
-    import supervisor
+#     # Stop annoying regular blink LED
+#     import supervisor
 
-    supervisor.runtime.rgb_status_brightness = 0
+#     supervisor.runtime.rgb_status_brightness = 0
 
-    while True:
-        if left_button.pressed:
-            led.blink(1)
-            audio.play("/sd/left/left_button.mp3", led)
-        if right_button.pressed:
-            led.blink(1)
-            audio.play("/sd/right/right_button.mp3", led)
+#     while True:
+#         if left_button.pressed:
+#             led.blink(1)
+#             audio.play("/sd/left/left_button.mp3", led)
+#         if right_button.pressed:
+#             led.blink(1)
+#             audio.play("/sd/right/right_button.mp3", led)
