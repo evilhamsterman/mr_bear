@@ -7,7 +7,6 @@ import audiobusio
 import audiomp3
 import board
 import digitalio
-import neopixel
 import sdcardio
 import storage
 from microcontroller import Pin
@@ -20,15 +19,15 @@ FILE = 0x8000
 class LED:
     """LED object"""
 
-    def __init__(self) -> None:
-        self.led = neopixel.NeoPixel(board.NEOPIXEL, 1)
-        self._state = False
-        self.color = (255, 0, 0)  # GREEN
+    def __init__(self, pin: Pin = board.SDA) -> None:
+        self.led = digitalio.DigitalInOut(pin)
+        self.led.direction = digitalio.Direction.OUTPUT
+        self.led.value = False
 
     @property
     def state(self) -> bool:
         """Returns the current state of the LED"""
-        return self._state
+        return self.led.value
 
     @state.setter
     def state(self, new_state: bool) -> bool:
@@ -37,20 +36,23 @@ class LED:
             self.on()
         else:
             self.off()
-        return self._state
+        return self.led.value
 
     def on(self):
         """Turn on the LED"""
-        self._state = True
-        self.led.fill((255, 0, 0))
+        self.led.value = True
 
     def off(self):
         """Turn off the LED"""
-        self._state = False
-        self.led.fill((0, 0, 0))
+        self.led.value = False
+
+    def toggle(self):
+        """Toggle the LED"""
+        self.led.value = not self.led.value
 
     def blink(self, num: int, speed: float = 0.25):
         """Blink LED num times"""
+        self.off()
         for _ in range(num):
             self.on()
             time.sleep(speed)
@@ -59,14 +61,11 @@ class LED:
 
     @property
     def brightness(self) -> float:
-        return self.led.brightness
+        ...
 
     @brightness.setter
     def brightness(self, level: float):
-        level = level / 100
-        print("Pre clamp level: ", level)
-        self.led.brightness = 1 if level > 1 else level
-        print("Post clamp level: ", self.led.brightness)
+        ...
 
 
 class SDCard:
@@ -129,23 +128,33 @@ class AudioOut:
 class Button:
     """Button object"""
 
-    def __init__(self, button: Pin = board.BUTTON) -> None:
+    def __init__(self, button: Pin = board.BUTTON, debounce: float = 0.2) -> None:
         self.button = digitalio.DigitalInOut(button)
         self.button.switch_to_input(pull=digitalio.Pull.UP)
+        self.debounce = debounce
 
     @property
     def pressed(self) -> bool:
         """Return the value of the button with debounce"""
         if not self.button.value:
-            time.sleep(0.2)
+            time.sleep(self.debounce)
             return True
         return False
+
+
+def test_button(button: Button, led: LED) -> None:
+    """Test a button"""
+    while True:
+        if button.pressed:
+            led.blink(1)
+            print("Button Pressed")
 
 
 if __name__ == "__main__":
     sdcard = SDCard()
     audio = AudioOut()
-    button = Button()
+    left_button = Button(board.TX)
+    right_button = Button(board.RX)
     led = LED()
 
     print("Loaded and ready")
@@ -157,6 +166,9 @@ if __name__ == "__main__":
     supervisor.runtime.rgb_status_brightness = 0
 
     while True:
-        if button.pressed:
-            song = sdcard.ls("/")[0].path
-            audio.play(song, led)
+        if left_button.pressed:
+            led.blink(1)
+            audio.play("/sd/left/left_button.mp3", led)
+        if right_button.pressed:
+            led.blink(1)
+            audio.play("/sd/right/right_button.mp3", led)
