@@ -1,6 +1,6 @@
-import os
+import re
 import time
-from collections import namedtuple
+from pathlib import Path
 
 import audiobusio
 import audiomp3
@@ -10,10 +10,6 @@ import pwmio
 import sdcardio
 import storage
 from microcontroller import Pin
-
-ItemType = namedtuple("ItemType", ("path", "type"))
-FOLDER = 0x4000
-FILE = 0x8000
 
 
 class LED:
@@ -55,7 +51,6 @@ class LED:
 
     def on(self):
         """Turn on the LED"""
-        print("Turning on")
         self.brightness = 255
 
     def off(self):
@@ -79,33 +74,32 @@ class LED:
 class SDCard:
     """Reference the SD Card"""
 
-    def __init__(self, mount_point: str = "/sd") -> None:
+    def __init__(self, mount_point: str | Path = Path("/sd")) -> None:
         self.mount_point = mount_point
         print("Creating card")
         card = sdcardio.SDCard(board.SPI(), board.A0)
         print("Loading Filesystem")
         vfs = storage.VfsFat(card)
         print("Mouning SD Card")
-        storage.mount(vfs, self.mount_point)
+        storage.mount(vfs, str(self.mount_point))
         print("SD Card Mounted")
 
-    def ls(self, folder: str = "/") -> list[tuple[str, str]]:
-        """
-        List files and folder on the SD Card
+    def ls(self, folder: str | Path = None) -> list[Path]:
+        """Returns a list of items in a folder"""
+        if folder is None:
+            folder = Path(self.mount_point)
+        else:
+            folder = Path(self.mount_point) / folder
+        return list(folder.iterdir())
 
-        Returns a list with all items in the folder with a tuple of path and the type
-        """
-        path = self.mount_point + folder
-        items = []
-        for i in os.listdir(self.mount_point + folder):
-            f = f"{path}/{i}"
-            t = os.stat(f)[0]
-            items.append(ItemType(f, FILE if t == FILE else FOLDER))
-        return items
-
-    def ls_files(self, folder: str = "/", ext: str = "") -> list:
+    def ls_files(self, folder: str | Path = None, ext: str = None) -> list[Path]:
         """Returns a list of files in a folder optionally filtered by extension"""
-        return [f for f in self.ls(folder) if f.type == FILE & f.path.endswith(ext)]
+        if folder is None:
+            folder = Path(self.mount_point)
+        if ext is None:
+            return [f for f in self.ls(folder) if f.is_file()]
+        else:
+            return [f for f in self.ls(folder) if f.is_file() and f.suffix == ext]
 
 
 class AudioOut:
@@ -114,9 +108,9 @@ class AudioOut:
     def __init__(self) -> None:
         self.audio = audiobusio.I2SOut(board.A3, board.A2, board.A1)
 
-    def play(self, file: str, led: LED | None = None):
+    def play(self, file: str | Path, led: LED | None = None):
         """Play a WAV file"""
-        with open(file, "rb") as f:
+        with open(str(file), "rb") as f:
             wave = audiomp3.MP3Decoder(f)
             self.audio.play(wave)
             print(f"Playing {file}")
